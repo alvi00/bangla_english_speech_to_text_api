@@ -1,0 +1,62 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bangla Speech to Text (Live, GPU)</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        #transcription { width: 100%; height: 200px; }
+        #status { margin-top: 10px; }
+        button { padding: 10px 20px; margin: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Bangla Speech to Text (Live, GPU)</h1>
+    <p>Click "Start Recording" to begin live Bangla speech transcription. Uses the 'tiny' model for testing.</p>
+    <button id="start">Start Recording</button>
+    <button id="stop">Stop Recording</button>
+    <div id="status">Click "Start Recording" to begin.</div>
+    <textarea id="transcription" readonly></textarea>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+        let mediaRecorder;
+        let stream;
+
+        document.getElementById("start").onclick = async () => {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm; codecs=opus" });
+                mediaRecorder.ondataavailable = e => {
+                    if (e.data.size > 0) {
+                        e.data.arrayBuffer().then(buffer => {
+                            socket.emit("audio", { audio: new Uint8Array(buffer) });
+                        });
+                    }
+                };
+                mediaRecorder.start(1000); // Send audio every 1 second
+                socket.emit("status", { status: "Recording... Speak in Bangla." });
+            } catch (err) {
+                console.error("Error accessing microphone:", err);
+            }
+        };
+
+        document.getElementById("stop").onclick = () => {
+            if (mediaRecorder) {
+                mediaRecorder.stop();
+                stream.getTracks().forEach(track => track.stop());
+                socket.emit("stop");
+            }
+        };
+
+        socket.on("status", data => {
+            document.getElementById("status").innerText = data.status;
+        });
+
+        socket.on("transcription", data => {
+            document.getElementById("transcription").value += data.text + "\n";
+        });
+    </script>
+</body>
+</html>
+    

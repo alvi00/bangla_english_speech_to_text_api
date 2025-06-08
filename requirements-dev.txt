@@ -1,0 +1,9 @@
+transformers
+faster-whisper
+torch
+PyYAML
+requests
+SpeechRecognition
+pydub
+webrtcvad>=2.0.10
+scipy>=1.7.0
